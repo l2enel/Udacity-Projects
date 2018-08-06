@@ -1,0 +1,558 @@
+Observation of Red Wine Data Set by Renel Garces
+========================================================
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, packages}
+
+#loading libraries 
+
+library(ggplot2)
+library(dplyr)
+library(reshape)
+library(MASS)
+library(car)
+library(GGally)
+library(memisc)
+library(reshape2)
+library(scales)
+library(gridExtra)
+library(lattice)
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, Load_the_Data}
+
+wine <- read.csv('wineQualityReds.csv')
+
+```
+
+  This report includes the examination of the red wine data set.  The main focus
+of this report is to find common characteristics that are shared between the 
+same quality of wines.  There will also be analysis conducted to observe the
+correlation between different variables to wine quality.
+
+# Univariate Plots Section
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, Univariate_Plots}
+
+dim(wine)
+str(wine)
+summary(wine)
+
+```
+
+The data set includes 1599 observations with thirteen different variables.
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+ggplot(aes(x = pH), data = wine) +
+  geom_histogram(binwidth = .01) +
+  ggtitle('Count of pH Observations')
+
+summary(wine$pH)
+
+```
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+ggplot(aes(x = citric.acid), data = wine) + 
+  geom_histogram(binwidth = .01) +
+  xlab('citric acid (g / dm^3)') +
+  ggtitle('Count of Citric Acid Observations')
+
+summary(wine$citric.acid)
+
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+#xlim has been placed to ignore the top 5% of the data
+
+ggplot(aes(x = residual.sugar), data = wine) + 
+  geom_histogram(binwidth = .1) +
+  xlim(c(0, quantile(wine$residual.sugar, .95))) +
+  xlab('residual sugar (g / dm^3)') +
+  ggtitle('Count of Residual Sugar Observations')
+
+summary(wine$residual.sugar)
+
+```
+
+A limit on the value of residual.sugar was placed in order to focus on the bulk
+of the data.  Most wines have a sugar level around 2 although there are some
+outliers having a sugar level up to 15, causing the data to be skewed to the 
+right.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+ggplot(aes(x = chlorides), data = wine) + 
+  geom_histogram(binwidth = .001) + 
+  xlim(c(0, quantile(wine$chlorides, .95))) +
+  xlab('chlorides g / dm^3') +
+  ggtitle('Count of Chloride Observations')
+
+summary(wine$chlorides)
+
+```
+
+
+A limit was placed on the value of chlorides to focus on the bulk of the data 
+and ignore the outliers.  The top 5% of values are ignored in this plot.  The
+observations of chloride seem to be the most normally distributed variable.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+ggplot(aes(x = density), data = wine) + 
+  geom_histogram(binwidth = .0001) +
+  xlab('density (g / cm^3)') +
+  ggtitle('Count of Density Observations')
+
+summary(wine$density)
+
+```
+
+The density variable appears to be normally distributed.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+ggplot(aes(x = alcohol), data = wine) + 
+  geom_histogram(binwidth = .1) +
+  xlab('alcohol (% by volume)') +
+  ggtitle('Count of Alcohol Observations')
+
+summary(wine$alcohol)
+
+```
+
+The variable alcohol is skewed towards the right, with most observations having an alcohol rating of 9.5.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+ggplot(aes(x = sulphates), data = wine) + 
+  geom_histogram(binwidth = .01) +
+  xlim(c(0, quantile(wine$sulphates, .99))) +
+  xlab('sulphates g / dm3') +
+  ggtitle('Count of Sulphate Observations')
+
+summary(wine$sulphates)
+
+```
+
+The sulphate variable was the most heavily skewed variable.  The top one percent
+of data is ignored in this plot to avoid seeing overly dispersed data.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+ggplot(aes(x = quality), data = wine) + 
+  geom_histogram(binwidth = .1) +
+  ggtitle('Count of Quality Observations')
+
+summary(wine$quality)
+
+```
+
+
+````{r echo=FALSE, message=FALSE, warning=FALSE}
+# group all wines into high or low quality
+
+condition <- (wine$quality > 5)
+wine$qual_cat <- ifelse(condition, 'high', 'low')
+
+highs <- subset(wine, qual_cat == 'high')
+lows <- subset(wine, qual_cat == 'low')
+
+qplot(data=wine, x=qual_cat, xlab='quality category',
+      ylab='count', main='Wine by Quality Category')
+
+summary(wine$qual_cat)
+
+```
+
+# Univariate Analysis
+
+### What is the structure of your dataset?
+
+The structure of the data set includes 1599 observations with 13 different
+variables.
+
+### What is/are the main feature(s) of interest in your dataset?
+
+The main feature of interest in this report is to view the trends among 
+different wines grouped by quality.
+
+### What other features in the dataset do you think will help support your \
+investigation into your feature(s) of interest?
+
+I believe that there will be a negative relationship between acidity(pH) and 
+quality as it's generally thought that higher quality wines have lower the pH.
+I also hope to find that the wines containing the highest and lowest residual
+sugar values will be classified under lower quality ratings as I presume that
+those wines will be classified as low quality due to the imbalance of sweetness.
+
+### Did you create any new variables from existing variables in the dataset?
+
+No
+
+### Of the features you investigated, were there any unusual distributions? \
+Did you perform any operations on the data to tidy, adjust, or change the form \
+of the data? If so, why did you do this?
+
+The only normally distributed variables were density and pH.  All other 
+variables appeared to be long-tailed and skewed towards the right.
+
+In order to tidy the data, I adjusted the binwidths on plots with variables such
+as pH, citric.acid, and residual.sugar because the data points consisted of data
+that was calculated to the tenth or hundredth decimal place.  This was to 
+prevent rounding of the data that would cause the plots over cluster the data
+and make it difficult to see the variations in the distributions. I also limited
+the values along the x-axis on some of the plots in order to focus the plots 
+towards the bulk of the data and ignore the outliers.
+
+# Bivariate Plots Section
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+#Creating a new data frame that will contain mean values for each quality rating
+
+wine_qualities <- summarise(group_by(wine, quality), 
+          mean_density = mean(density),
+          median_density = median(density),
+          mean_pH = mean(pH),
+          mean_sulphates = mean(sulphates),
+          mean_sugar = mean(residual.sugar),
+          mean_chlorides = mean(chlorides),
+          mean_citric = mean(citric.acid),
+          n = n())
+```
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+sevens <- subset(wine, quality == 7)
+eights <- subset(wine, quality == 8)
+
+ggplot(wine, aes())  +
+  geom_histogram(data = sevens, aes(x = citric.acid, colour=factor(quality)),
+                 alpha = .2, binwidth = .01) +
+  geom_histogram(data = eights, aes(x = citric.acid, colour=factor(quality)),
+                 alpha = .2, binwidth = .01) +
+  scale_colour_manual(values = c("red", "blue")) +
+  xlab('citric acid (g / dm^3)') +
+  ggtitle('Citric Acid Count for 7 and 8 Quality Wines')
+  
+```
+
+This plot shows that the highest quality wine (8) show no particular trends of 
+citric acid levels, while most of the second highest quality of wines (7) have 
+an citric acid level of 0 or between .3 and .5.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(data = wine, aes(x = citric.acid, y = pH)) +
+  geom_point(alpha = 1/5) +
+  xlab('citric acid (g / dm^3)') +
+  ggtitle('Citric Acid vs pH')
+
+cor.test(wine_qualities$mean_citric, wine_qualities$quality)
+```
+
+There is a postive relationship between a wine's citric acid level and overall 
+acidity level (or negative in terms of pH level).  
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+ggplot(data = wine_qualities, aes(y = mean_sugar, x = quality)) +
+  geom_bar(stat='identity', position='dodge') +
+  ylab('mean_sugar (g / dm^3)') +
+  ggtitle('Mean Sugar vs Quality')
+
+cor.test(wine_qualities$mean_sugar, wine_qualities$quality)
+```
+
+There's very low correlation between a wine's residual sugar levels and its quality rating.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(data = wine_qualities, aes(x = mean_chlorides, y = quality)) +
+  geom_line() +
+  xlab('mean chlorides g / dm^3') +
+  ggtitle('Mean Chlorides vs Quality')
+
+cor.test(wine_qualities$mean_chlorides, wine_qualities$quality)
+```
+
+This plot shows that as chloride content decreases, quality rating increases.  
+There is a noticeable dip for moderate quality wines.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+ggplot(data = wine_qualities, aes(x = mean_density, y = quality)) +
+  geom_line() +
+  xlab('mean_density (g / cm^3)') +
+  ggtitle('Mean Density vs Quality')
+
+cor.test(wine_qualities$mean_density, wine_qualities$quality)
+
+```
+
+This plot shows that higher quality wines are more likely to have a lower 
+density.
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+ggplot(data = wine_qualities, aes(x = mean_pH, y = quality)) +
+  geom_line() +
+  ggtitle('Mean pH vs Quality')
+
+cor.test(wine$pH, wine$quality)
+
+```
+
+This plot shows that as quality decreases, pH also increases but very slightly.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+ggplot(data = wine_qualities, aes(x = mean_sulphates, y = quality)) +
+  geom_line() +
+  xlab('mean_sulphates g / dm3') +
+  ggtitle('Mean Sulphates vs Quality')
+
+cor.test(wine_qualities$mean_sulphates, wine_qualities$quality)
+
+```
+
+This plot shows the positive relationship between quality and mean_sulphates.
+This plot was also one of the only ones to not show the moderate quality wines
+breaking the trend between the high vs low quality wines.
+
+# Bivariate Analysis
+
+### Talk about some of the relationships you observed in this part of the \
+investigation. How did the feature(s) of interest vary with other features in \
+the dataset?
+
+After analyzing different relationships between different variables in the data
+set, it has been discovered that a lot of the variables were weakly correlated
+to the variable of quality including; acidity, sugar, chloride, density,
+sulphates unless you correlate the mean value of each variable in relation
+to quality.  Mean residual sugar showdd the weakest correlation to quality while
+mean sulphates showed the strongest correlation to quality.
+
+
+### Did you observe any interesting relationships between the other features \
+(not the main feature(s) of interest)?
+
+I observed the correlation between citric acid content and overall pH.  It was
+the highest positive correlation observed at 0.97.  It was also interesting to
+see how little sugar had to do with the quality ratings.
+
+
+### What was the strongest relationship you found?
+
+The strongest relationship found was the correlation between sulphates and
+quality rating at 0.9859.
+
+# Multivariate Plots Section
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, Multivariate_Plots}
+
+ggplot(data = wine_qualities, aes(x = mean_pH, y = mean_sugar)) +
+  ylab('mean_sugar (g / dm^3)') +
+  geom_point(aes(color = factor(quality))) +
+  ggtitle('Sugar and pH Composition of Wine Qualities')
+
+```
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+# add more statistical sulphate variables
+
+wine_qualities <- summarise(group_by(wine, quality), 
+          mean_density = mean(density),
+          median_density = median(density),
+          mean_pH = mean(pH),
+          mean_sulphates = mean(sulphates),
+          mean_sugar = mean(residual.sugar),
+          mean_chlorides = mean(chlorides),
+          mean_citric = mean(citric.acid),
+          max_sulphate = max(sulphates),
+          min_sulphate = min(sulphates),
+          median_sulphate = median(sulphates),
+          n = n())
+
+ggplot(data = wine_qualities, aes()) +
+  geom_line(aes(y = mean_sulphates, x = quality, color = 'mean')) +
+  geom_line(aes(y = median_sulphate, x = quality, color = 'median')) +
+  ylab('sulphates g / dm3') +
+  ggtitle('Mean and Median Sulphates vs Quality')
+
+```
+
+This plot's purpose is to illustrate the mean composition of different quality
+wines in terms of acidity and sugar.  There appears to be no trend between pH
+and sugar composition among the different quality of wines.
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+#Selecting fewer of the wine qualities to not overcrowd the plot
+
+sub <- subset(wine, quality %in% c(3, 5, 7))
+
+ggplot(data = sub, aes(x = alcohol, y = residual.sugar), binwidth = .001) +
+  geom_point(aes(color = factor(quality))) +
+  xlab('alcohol (% by volume)') +
+  ylab('residual sugar (g / dm^3)') +
+  ylim(c(1, quantile(sub$residual.sugar, .95))) +
+  ggtitle('Sugar and Alcohol Balance of Low/Med/High Grade Wines (3, 5, 7)')
+
+```
+
+This plot shows that sugar does not increase as alcohol content increases.  It
+also shows that higher quality wines tend to have more alcohol than lower 
+quality wines.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+ggplot(data = wine_qualities, aes(x = mean_chlorides, y = mean_pH)) +
+  geom_line(aes(color = quality)) +
+  xlab('mean_chlorides g / dm^3') +
+  ggtitle('Chloride and pH Composition of Wine Qualities')
+
+```
+
+# Multivariate Analysis
+
+### Talk about some of the relationships you observed in this part of the \
+investigation. Were there features that strengthened each other in terms of \
+looking at your feature(s) of interest?
+
+The relationships observed in the multivariant analysis included the observation
+of sugar and pH content among different qualities of wine, the combination of 
+alcohol and sugar content among the different wine qualities, and the mean
+chloride and pH level among different wine qualities.  The main takeway
+from the previous three plots is that it is difficult to see a distinction
+between sugar content and the quality of wine even when paired with other 
+variables such as pH, chloride content, and alcohol content.
+
+### Were there any interesting or surprising interactions between features?
+
+When all three plots are examined together it is revealed the residual sugar
+content would play little if any role being able to predict a wines quality.  It
+was also interesting to see the high quality wines and low quality wines both
+shared the characteristic of containing relatively high amounts of sugar.  The
+differentiating factor may be the sugar content in higher quality wines is 
+balanced out by the higher alcohol content.
+
+### OPTIONAL: Did you create any models with your dataset? Discuss the \
+strengths and limitations of your model.
+
+N/A
+
+------
+
+# Final Plots and Summary
+
+### Plot One
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+# group all wines into high or low quality
+
+condition <- (wine$quality > 5)
+wine$qual_cat <- ifelse(condition, 'high', 'low')
+
+highs <- subset(wine, qual_cat == 'high')
+lows <- subset(wine, qual_cat == 'low')
+
+ggplot(wine, aes())  +
+  geom_histogram(data = highs, aes(x = citric.acid, colour=factor(qual_cat)),alpha = .05, binwidth = .01) +
+  geom_histogram(data = lows, aes(x = citric.acid, colour=factor(qual_cat)), alpha = .05, binwidth = .01) +
+  xlim(quantile(lows$citric.acid, .05), quantile(lows$citric.acid, .95)) +
+  xlim(quantile(highs$citric.acid, .05), quantile(highs$citric.acid, .95)) +
+  ylim(0, 35) +
+  scale_colour_manual(values = c("red", "blue")) +
+  xlab('citric acid (g / dm^3)') +
+  ggtitle('Citric Acid Count for High and Low Quality Wines')
+
+```
+
+### Description One
+
+This plot shows the distribution of different citric acid levels between low
+quality wines and high quality wines.  The low quality wines are wines rated 
+from 3-5 while the high quality wines are rated 6-8.  The distribution of 
+low quality wines appear to be slightly more weighted to the lower citric acid
+levels while the higher quality wines appear to be slightly more weighted to the
+higher citric acid levels.
+
+### Plot Two
+```{r echo=FALSE, message=FALSE, warning=FALSE, Plot_Two}
+
+#Selecting fewer of the wine qualities to not overcrowd the plot
+
+sub <- subset(wine, quality %in% c(3, 5, 7))
+
+ggplot(data = sub, aes(x = alcohol, y = residual.sugar), binwidth = .001) +
+  geom_point(aes(color = factor(quality))) +
+  xlab('alcohol (% by volume)') +
+  ylab('residual sugar (g / dm^3)') +
+  ylim(c(1, quantile(sub$residual.sugar, .95))) +
+  ggtitle('Sugar and Alcohol Balance of Low/Med/High Grade Wines (3, 5, 7)')
+
+```
+
+### Description Two
+
+This plot was created to see if sugar and alcohol balance had anything to do 
+with a wine's quality.  This plot reveals sugar is irrelevent to a wines quality
+given its alcohol content.  The plot also reveals that higher quality wines tend
+to contain more alcohol relative to lower quality wines.
+
+### Plot Three
+```{r echo=FALSE, message=FALSE, warning=FALSE, Plot_Three}
+
+# add more statistical sulphate variables
+
+wine_qualities <- summarise(group_by(wine, quality), 
+          mean_density = mean(density),
+          median_density = median(density),
+          mean_pH = mean(pH),
+          mean_sulphates = mean(sulphates),
+          mean_sugar = mean(residual.sugar),
+          mean_chlorides = mean(chlorides),
+          mean_citric = mean(citric.acid),
+          max_sulphate = max(sulphates),
+          min_sulphate = min(sulphates),
+          median_sulphate = median(sulphates),
+          n = n())
+
+ggplot(data = wine_qualities, aes()) +
+  geom_line(aes(y = mean_sulphates, x = quality, color = 'mean')) +
+  geom_line(aes(y = median_sulphate, x = quality, color = 'median')) +
+  ylab('sulphates g / dm3') +
+  ggtitle('Mean and Median Sulphates vs Quality')
+
+```
+
+### Description Three
+
+This plot illustrates the strongest correlation in the data set which is the
+relationship between wine quality and sulphate amount.  I added the median line
+in the graph to provide more statistical evidence that sulphate is strongly,
+positively correlated with wine quality.
+
+------
+
+# Reflection
+
+Overall this project opened to my eyes to how trends may not be as easily
+visible by looking at the raw data.  Trends may be hidden because of the skewing
+caused by the over dispersion of data, the overcrowding of data points, or 
+approaching the data itself in the wrong way.  At first I struggled to find any
+meaningful relationships when I looked at the data with minimal manipulation. 
+Once I've gotten to seperating the data set into different groups by wine 
+quality and looking at the means of the other variables, it became easier to see
+trends and relationships.  It was suprising to see that, despite my prediction,
+there was no trend in combinations of variables of pH and sugar, acidity and
+sugar, and alcohol and sugar when it came to predicting wine quality.  I thought
+that higher wine qualities would share similar characteristics of a balance of 
+sweet/salty, sweet/acidic, or sweet/alcohol.  I was wrong.  In the future, 
+one may further examine this data set by taking an even sample from each wine
+quality group and conduct analysis of the variables to make up for the unequal
+representation of each wine quality in the data set.
